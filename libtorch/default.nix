@@ -20,11 +20,14 @@ let
   libtorch-cu102-linux = fetcher "cu102" "linux";
   libtorch-cu113-linux = fetcher "cu113" "linux";
 
-  libtorch_version = "1.11.0";
+  libtorch_version = "1.13.1";
   libcxx-for-libtorch = if stdenv.hostPlatform.system == "x86_64-darwin" then libcxx else stdenv.cc.cc.lib;
   libmklml = opts: callPackage ./mklml.nix ({} // opts);
   callCpu = opts: callPackage ./generic.nix ({libcxx = libcxx-for-libtorch;} // opts);
   callGpu = opts: callPackage ./generic.nix ({libcxx = libcxx-for-libtorch;} // opts);
+  matchSys = sys: (pkgs.lib.tail (pkgs.lib.splitString "-" stdenv.hostPlatform.system)) == [sys];
+  isDarwin = matchSys "darwin";
+  isLinux = matchSys "linux";
 in
 {
   libmklml = libmklml { useIomp5 = true; inherit lib;};
@@ -34,8 +37,8 @@ in
     version = libtorch_version;
     buildtype = "cpu";
     mkSrc = buildtype:
-      if stdenv.hostPlatform.system == "x86_64-linux" then libtorch-cpu-linux
-      else if stdenv.hostPlatform.system == "x86_64-darwin" then libtorch-cpu-macos
+      if isLinux then libtorch-cpu-linux
+      else if isDarwin then libtorch-cpu-macos
       else throw "missing url for platform ${stdenv.hostPlatform.system}";
   };
 } // lib.optionalAttrs (stdenv.hostPlatform.system == "x86_64-linux") {
